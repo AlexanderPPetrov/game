@@ -18,12 +18,10 @@
 <div id="container"></div>
 
 <script src="js/vendor/three.min.js"></script>
-<script src="js/loaders/ColladaLoader.js"></script>
-<script src="js/ImprovedNoise.js"></script>
 <script src="js/vendor/jquery.js"></script>
 <script src="js/vendor/lodash.js"></script>
 <script src="js/vendor/Maze.js"></script>
-<script src="js/Detector.js"></script>
+<script src="js/vendor/Detector.js"></script>
 
 
 <script>
@@ -33,7 +31,7 @@
     var container;
     var walls = [];
 
-    var camera, scene, renderer;
+    var camera, light, scene, renderer;
 
     var mesh;
 
@@ -47,45 +45,75 @@
         //
 
         camera = new THREE.PerspectiveCamera( 27, window.innerWidth / window.innerHeight, 1, 3500 );
-        camera.position.z = 2750;
+        camera.position.z = 2500;
+        camera.position.y = 500;
+        camera.rotation.x = -Math.PI/10;
 
         scene = new THREE.Scene();
         scene.fog = new THREE.Fog( 0x050505, 2000, 3500 );
 
         //
 
-        scene.add( new THREE.AmbientLight( 0x444444 ) );
 
-        var light1 = new THREE.DirectionalLight( 0xffffff, 0.5 );
-        light1.position.set( 1, 1, 1 );
-        scene.add( light1 );
+        light = new THREE.DirectionalLight( 0xdfebff, 1.75 );
+        light.position.set( -500, 400, 1000 );
+        light.position.multiplyScalar( 1.3 );
 
-        var light2 = new THREE.DirectionalLight( 0xffffff, 1.5 );
-        light2.position.set( 0, -1, 0 );
-        scene.add( light2 );
+        light.castShadow = true;
+        //light.shadowCameraVisible = true;
+
+        light.shadowMapWidth = 2048;
+        light.shadowMapHeight = 2048;
+
+        var d = 300;
+
+        light.shadowCameraLeft = -d;
+        light.shadowCameraRight = d;
+        light.shadowCameraTop = d;
+        light.shadowCameraBottom = -d;
+
+        light.shadowCameraFar = 1000;
+        light.shadowDarkness = 0.5;
+
+        scene.add( light );
+
+        light = new THREE.DirectionalLight( 0x3dff0c, 0.35 );
+        light.position.set( 0, -1, 0 );
+
+        scene.add( light );
 
 
-        var wall_01 = createWall(200,200,300,'textures/down.jpg');
-        walls.push(wall_01);
-        //TODO create 3 more walls
-        //rotate them properly  ( wall_02.rotation.x = Math.PI/2);
-        //position them properly
+        var cubeSize = 100;
+        var cubesContainer = new THREE.Object3D();
+        var colors = [0xc61909, 0xf1df23, 0x56ddf1, 0x08ae61, 0xa81497]
+        for(var r = 0; r < 5; r++){
+            //grid Cols
+            for (var c=0; c < 10; c++)
+            {
 
-        //TODO create another helper function for other objects
+                var randomColor = colors[getRandomInt(0,colors.length-1)];
+                var randomizer = getRandomInt(1,4);
+                var cube = createCube(cubeSize,(cubeSize/2)*randomizer,cubeSize,randomColor);
+                cube.position.x = c*cubeSize+ c*cubeSize/2;
+                cube.position.z = r*cubeSize+ r*cubeSize/2;
+                cube.position.y = (cubeSize/2)*randomizer/2;
+                cubesContainer.add(cube)
+            }
+        }
 
 
-
-
-
+        cubesContainer.position.x = -(10*cubeSize)/2 - cubeSize*1.8;
+        cubesContainer.position.z = 0;
+        scene.add(cubesContainer);
 
 
 
         for(i=0; i < walls.length; i++){
-            scene.add(walls[i]);
+           // scene.add(walls[i]);
         }
 
-
-
+        var ground = createGround(3000,1500);
+        scene.add(ground);
 
 
 
@@ -96,6 +124,9 @@
 
         renderer.gammaInput = true;
         renderer.gammaOutput = true;
+        renderer.shadowMapEnabled = true;
+
+
 
         container.appendChild( renderer.domElement );
 
@@ -116,21 +147,50 @@
 
     }
 
+    function createGround(width, height){
+        // ground
+        var ground3D = new THREE.Object3D();
 
-    function createWall(width,height,depth,texture){
+        var initColor = new THREE.Color( 0x7cac3e );
+        var initTexture = THREE.ImageUtils.generateDataTexture( 1, 1, initColor );
 
-        var wall3D = new THREE.Object3D();
+        var groundMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff, specular: 0x111111, map: initTexture } );
+
+       // var groundTexture = THREE.ImageUtils.loadTexture( "textures/ground.jpg", undefined, function() { groundMaterial.map = groundTexture } );
+//        groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
+//        groundTexture.repeat.set( 5, 5);
+//        groundTexture.anisotropy = 16;
+
+
+        var ground = new THREE.PlaneGeometry(width, height);
+        ground = new THREE.Mesh(ground, groundMaterial);
+
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+
+        ground3D.add(ground);
+
+        return ground3D;
+
+    }
+
+    function createCube(width,height,depth,color){
+
+        var cube3D = new THREE.Object3D();
 
         var textureGeometry = new THREE.CubeGeometry(width, height, depth);
         var texture = THREE.ImageUtils.loadTexture(texture);
 
-        var textureMaterial = new THREE.MeshPhongMaterial({color: 0xffffff, specular: 0x111111, map: texture });
+        var textureMaterial = new THREE.MeshPhongMaterial({color: color, specular: 0x111111 });
         var textureMesh = new THREE.Mesh(textureGeometry, textureMaterial);
 
-        wall3D.add(textureMesh);
+        textureMesh.castShadow = true;
+        textureMesh.receiveShadow = true;
+
+        cube3D.add(textureMesh);
 
 
-        return wall3D;
+        return cube3D;
     }
 
 
@@ -144,6 +204,8 @@
 
     }
 
+
+
     function render() {
 
 
@@ -153,6 +215,10 @@
 
         renderer.render( scene, camera );
 
+    }
+
+    function getRandomInt (min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
 
