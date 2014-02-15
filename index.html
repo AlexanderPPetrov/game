@@ -85,14 +85,15 @@
 
         var cubeSize = 100;
         var cubesContainer = new THREE.Object3D();
-        var colors = [0xc61909, 0xf1df23, 0x56ddf1, 0x08ae61, 0xa81497]
+        var colors = [null,0xc61909, 0xf1df23, 0x56ddf1, 0x08ae61, 0xa81497]
         for(var r = 0; r < 5; r++){
             //grid Cols
             for (var c=0; c < 10; c++)
             {
 
-                var randomColor = colors[getRandomInt(0,colors.length-1)];
-                var randomizer = getRandomInt(1,4);
+                var randomizer = getRandomInt(1,colors.length-1);
+                var randomColor = colors[randomizer];
+
                 var cube = createCube(cubeSize,(cubeSize/2)*randomizer,cubeSize,randomColor);
                 cube.position.x = c*cubeSize+ c*cubeSize/2;
                 cube.position.z = r*cubeSize+ r*cubeSize/2;
